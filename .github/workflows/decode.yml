@@ -1,0 +1,29 @@
+name: decode-slides
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  decode:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Decode base64 slides into PNG
+        run: |
+          set -e
+          for f in incoming/*/*.b64; do
+            [ -e "$f" ] || continue
+            d="midia/$(basename "$(dirname "$f")")"
+            mkdir -p "$d"
+            base64 -d "$f" > "$d/$(basename "${f%.b64}")"
+          done
+          file midia/*/*.png || true
+      - name: Commit PNGs
+        run: |
+          git config user.name "github-actions"
+          git config user.email "actions@users.noreply.github.com"
+          git add midia
+          git diff --cached --quiet || git commit -m "Decode slides to PNG"
+          git push
